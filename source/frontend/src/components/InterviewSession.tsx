@@ -1,0 +1,119 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import QuestionPanel from "./QuestionPanel";
+import ScoreGauge from "./ScoreGauge";
+import InterviewerReaction, { type ReactionMood } from "./InterviewerReaction";
+import { pickQuestions, pickTurnCount } from "@/lib/gameEngine";
+import type { Interviewer, JudgeResult, QaHistoryEntry } from "@/types/interview";
+
+const REACTION_DISPLAY_MS = 1800;
+
+interface InterviewSessionProps {
+  interviewer: Interviewer;
+  onFinish: (history: QaHistoryEntry[], eliminatedEarly: boolean) => void;
+}
+
+async function requestJudge(params: {
+  questionId: string;
+  category: Interviewer["id"];
+  interviewer: string;
+  question: string;
+  answer: string;
+}): Promise<JudgeResult> {
+  try {
+    const res = await fetch("/api/judge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) throw new Error(`judge api ${res.status}`);
+    return (await res.json()) as JudgeResult;
+  } catch {
+    // 네트워크 자체가 끊긴 최악의 경우에도 게임이 멈추지 않도록 방어한다.
+    return {
+      pass: true,
+      score: 50,
+      reaction: "연결이 불안정하지만... 일단 통과시켜주지.",
+      keyword: "임시 통과",
+    };
+  }
+}
+
+export default function InterviewSession({
+  interviewer,
+  onFinish,
+}: InterviewSessionProps) {
+  const turnCount = useMemo(() => pickTurnCount(), []);
+  const questions = useMemo(
+    () => pickQuestions(interviewer.id, turnCount),
+    [interviewer.id, turnCount]
+  );
+
+  const [turnIndex, setTurnIndex] = useState(0);
+  const [history, setHistory] = useState<QaHistoryEntry[]>([]);
+  const [mood, setMood] = useState<ReactionMood>("idle");
+  const [message, setMessage] = useState<string | undefined>();
+  const [submitting, setSubmitting] = useState(false);
+
+  const averageScore =
+    history.length === 0
+      ? 0
+      : Math.round(
+          history.reduce((sum, e) => sum + e.result.score, 0) / history.length
+        );
+
+  const currentQuestion = questions[turnIndex];
+
+  const handleSubmit = async (answer: string) => {
+    setSubmitting(true);
+    setMood("thinking");
+    setMessage(undefined);
+
+    const result = await requestJudge({
+      questionId: currentQuestion.id,
+      category: interviewer.id,
+      interviewer: interviewer.name,
+      question: currentQuestion.question,
+      answer,
+    });
+
+    const nextHistory = [...history, { question: currentQuestion, answer, result }];
+    setHistory(nextHistory);
+    setMood(result.pass ? "pass" : "fail");
+    setMessage(result.reaction);
+
+    window.setTimeout(() => {
+      const isLastTurn = turnIndex + 1 >= questions.length;
+      if (!result.pass || isLastTurn) {
+        onFinish(nextHistory, !result.pass);
+        return;
+      }
+      setTurnIndex((prev) => prev + 1);
+      setMood("idle");
+      setMessage(undefined);
+      setSubmitting(false);
+    }, REACTION_DISPLAY_MS);
+  };
+
+  return (
+    <div className="flex w-full flex-col items-center gap-8">
+      <ScoreGauge
+        currentTurn={turnIndex + 1}
+        totalTurns={questions.length}
+        averageScore={averageScore}
+      />
+      <InterviewerReaction
+        interviewerName={interviewer.name}
+        mood={mood}
+        message={message}
+      />
+      <QuestionPanel
+        key={currentQuestion.id}
+        question={currentQuestion}
+        disabled={submitting}
+        onSubmit={handleSubmit}
+      />
+    </div>
+  );
+}

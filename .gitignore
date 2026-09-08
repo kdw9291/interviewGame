@@ -1,0 +1,13 @@
+# 훅이 쓰는 세션 상태. 커밋하지 않는다.
+.claude/.state/
+
+# DB 스키마 DDL. 민감정보는 없지만 대표 요청에 따라 커밋하지 않는다.
+source/backend/sql/
+
+# 기획/설계·운영 문서와 워크플로우 도구. 소스코드 저장소에는 올리지 않는다.
+docs/
+.claude/
+CLAUDE.md
+CLAUDE.md.bak-*
+VERSION
+scripts/
