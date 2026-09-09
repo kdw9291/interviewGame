@@ -27,6 +27,15 @@ export function pickQuestions(category: QuestionCategory, count: number): Questi
   return shuffle(pool).slice(0, count);
 }
 
+/**
+ * 친구 도전장 딥링크로 지정된 질문 id들을 순서대로 찾는다.
+ * 존재하지 않는 id는 건너뛴다(질문 풀이 나중에 바뀌어도 안전하게 동작).
+ */
+export function findQuestionsByIds(ids: string[]): Question[] {
+  const byId = new Map(ALL_QUESTIONS.map((q) => [q.id, q]));
+  return ids.map((id) => byId.get(id)).filter((q): q is Question => Boolean(q));
+}
+
 export interface FinalVerdict {
   isPassed: boolean;
   averageScore: number;

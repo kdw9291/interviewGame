@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Stamp, ScrollText, Clock, Gauge, Newspaper, DoorOpen } from "lucide-react";
+import { Stamp, ScrollText, Clock, Gauge, Newspaper, DoorOpen, Swords } from "lucide-react";
 import InterviewerCard from "@/components/InterviewerCard";
 import LegendFeed from "@/components/LegendFeed";
 import AdBanner from "@/components/AdBanner";
@@ -12,11 +12,17 @@ import type { Interviewer } from "@/types/interview";
 
 type Tab = "room" | "legend";
 
-interface LobbyScreenProps {
-  onStart: (interviewer: Interviewer) => void;
+export interface LobbyChallenge {
+  interviewer: Interviewer;
+  questionIds: string[];
 }
 
-export default function LobbyScreen({ onStart }: LobbyScreenProps) {
+interface LobbyScreenProps {
+  onStart: (interviewer: Interviewer, questionIds?: string[]) => void;
+  challenge?: LobbyChallenge;
+}
+
+export default function LobbyScreen({ onStart, challenge }: LobbyScreenProps) {
   const [selectedId, setSelectedId] = useState<Interviewer["id"] | null>(null);
   const [tab, setTab] = useState<Tab>("room");
   const selected = INTERVIEWERS.find((i) => i.id === selectedId) ?? null;
@@ -36,6 +42,27 @@ export default function LobbyScreen({ onStart }: LobbyScreenProps) {
           className="mt-4 block text-sm leading-relaxed text-paper/70 sm:text-base"
         />
       </header>
+
+      {/* 친구 도전장 딥링크로 들어온 경우 */}
+      {challenge && (
+        <section className="mb-8 flex flex-col items-center gap-3 rounded-sm border-2 border-stamp-red bg-wood/60 px-6 py-5 text-center">
+          <p className="flex items-center gap-2 font-typewriter text-xs tracking-widest text-stamp-red">
+            <Swords size={16} />
+            친구의 도전장이 도착했습니다
+          </p>
+          <p className="text-sm text-paper/80">
+            {withJosaWa(challenge.interviewer.name)} 같은 질문 {challenge.questionIds.length}개로 대결합니다.
+          </p>
+          <button
+            type="button"
+            onClick={() => onStart(challenge.interviewer, challenge.questionIds)}
+            className="flex items-center gap-2 rounded-sm border-2 border-stamp-red bg-stamp-red px-6 py-2.5 font-typewriter text-sm tracking-widest text-paper transition-colors hover:bg-stamp-red/80"
+          >
+            <Stamp size={16} />
+            도전 수락하기
+          </button>
+        </section>
+      )}
 
       {/* 탭 메뉴 */}
       <div className="mb-8 flex justify-center gap-2">
