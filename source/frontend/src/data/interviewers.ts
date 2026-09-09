@@ -3,7 +3,7 @@ import type { Interviewer } from "@/types/interview";
 export const INTERVIEWERS: Interviewer[] = [
   {
     id: "k_boss",
-    name: "박부장",
+    name: "김부장",
     title: "대기업 꼰대 임원",
     tagline: "정답이 아니라 눈치를 봅니다.",
     description:
@@ -11,7 +11,7 @@ export const INTERVIEWERS: Interviewer[] = [
   },
   {
     id: "startup",
-    name: "김대표",
+    name: "박대표",
     title: "열정페이 스타트업 대표",
     tagline: "월급 대신 비전을 드립니다.",
     description:
