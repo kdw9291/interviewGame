@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Send } from "lucide-react";
 import SentenceText from "./SentenceText";
+import { useTypewriter } from "@/lib/useTypewriter";
+import { playTypeClick } from "@/lib/sfx";
 import type { Question } from "@/types/interview";
 
 const MAX_LENGTH = 120;
@@ -19,6 +21,7 @@ export default function QuestionPanel({
   onSubmit,
 }: QuestionPanelProps) {
   const [answer, setAnswer] = useState("");
+  const displayedQuestion = useTypewriter(question.question, 14, playTypeClick);
 
   const handleSubmit = () => {
     const trimmed = answer.trim();
@@ -33,7 +36,7 @@ export default function QuestionPanel({
         Q. {question.category === "k_boss" ? "꼰대형" : question.category === "startup" ? "열정페이형" : "괴짜형"} 질문
       </p>
       <SentenceText
-        text={question.question}
+        text={displayedQuestion}
         className="mb-4 block text-lg font-bold leading-snug"
       />
 

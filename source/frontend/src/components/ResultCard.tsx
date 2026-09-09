@@ -1,19 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, Loader2, RotateCcw, Send, Stamp } from "lucide-react";
-import type { QaHistoryEntry } from "@/types/interview";
+import { Download, Loader2, RotateCcw, Send, Stamp, Swords } from "lucide-react";
+import type { QaHistoryEntry, QuestionCategory } from "@/types/interview";
 import type { FinalVerdict } from "@/lib/gameEngine";
 import { withJosaWa } from "@/lib/korean";
 import { inlineComputedColors } from "@/lib/captureUtils";
+import { buildChallengeUrl } from "@/lib/challengeLink";
 import AdBanner from "./AdBanner";
 import SentenceText from "./SentenceText";
 
 const MAX_NICKNAME_LENGTH = 30;
+const MIN_CHALLENGE_QUESTIONS = 3;
 type StampStatus = "idle" | "loading" | "done" | "error";
+type ChallengeShareStatus = "idle" | "copied" | "shared" | "error";
 
 interface ResultCardProps {
   interviewerName: string;
+  interviewerId: QuestionCategory;
   verdict: FinalVerdict;
   history: QaHistoryEntry[];
   onRestart: () => void;
@@ -21,6 +25,7 @@ interface ResultCardProps {
 
 export default function ResultCard({
   interviewerName,
+  interviewerId,
   verdict,
   history,
   onRestart,
@@ -29,6 +34,7 @@ export default function ResultCard({
   const [downloading, setDownloading] = useState(false);
   const [nickname, setNickname] = useState("");
   const [stampStatus, setStampStatus] = useState<StampStatus>("idle");
+  const [challengeStatus, setChallengeStatus] = useState<ChallengeShareStatus>("idle");
 
   const lastReaction = history[history.length - 1]?.result.reaction ?? "";
   const today = new Date().toLocaleDateString("ko-KR");
@@ -99,6 +105,29 @@ export default function ResultCard({
       setStampStatus("done");
     } catch {
       setStampStatus("error");
+    }
+  };
+
+  const handleChallengeShare = async () => {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    const url = buildChallengeUrl(siteUrl, {
+      interviewerId,
+      questionIds: history.map((entry) => entry.question.id),
+    });
+    const shareText = `${withJosaWa(interviewerName)} 같은 질문으로 대결! 너라면 통과할 수 있겠어?`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "억까 면접관 살아남기", text: shareText, url });
+        setChallengeStatus("shared");
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setChallengeStatus("copied");
+    } catch (error) {
+      // 유저가 공유 시트를 그냥 닫은 경우까지 에러로 취급하지 않는다.
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setChallengeStatus("error");
     }
   };
 
@@ -195,6 +224,29 @@ export default function ResultCard({
           다시 도전하기
         </button>
       </div>
+
+      {history.length >= MIN_CHALLENGE_QUESTIONS && (
+        <div className="flex flex-col items-center gap-1">
+          <button
+            type="button"
+            onClick={handleChallengeShare}
+            className="flex items-center gap-2 rounded-sm border-2 border-stamp-red px-5 py-2.5 font-typewriter text-xs tracking-widest text-stamp-red transition-colors hover:bg-stamp-red hover:text-paper"
+          >
+            <Swords size={14} />
+            친구에게 도전장 보내기
+          </button>
+          {challengeStatus === "copied" && (
+            <p className="font-typewriter text-[11px] text-gold-bright">
+              링크가 복사됐어요! 친구에게 붙여넣기 해보세요.
+            </p>
+          )}
+          {challengeStatus === "error" && (
+            <p className="font-typewriter text-[11px] text-stamp-red">
+              지금은 공유 링크를 만들 수 없어요.
+            </p>
+          )}
+        </div>
+      )}
 
       {!verdict.isPassed && (
         <div className="flex w-full max-w-md flex-col items-center gap-2 border-t border-paper-dark/20 pt-5">
