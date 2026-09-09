@@ -5,6 +5,10 @@ import type { JudgeRequest, JudgeResult } from "./types";
 const MODEL = "gemini-3.6-flash";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
+// Gemini가 극단적으로 느려질 때(관측상 60초 이상 걸린 사례가 있었음) 유저를
+// 무한정 기다리게 하지 않고 폴백으로 넘어가도록 타임아웃을 둔다.
+const REQUEST_TIMEOUT_MS = 60_000;
+
 /** Gemini 무료 키 풀이 전부 소진(429)됐거나 키가 하나도 없을 때 던진다. */
 export class QuotaExceededError extends Error {
   constructor(message = "Gemini API 키 풀이 모두 할당량을 초과했습니다.") {
@@ -82,6 +86,9 @@ async function callGeminiWithKey(
   apiKey: string,
   request: JudgeRequest
 ): Promise<JudgeResult | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   try {
     const userPrompt = `[면접 질문]\n${request.question}\n\n[지원자 답변]\n${request.answer}`;
 
@@ -100,6 +107,7 @@ async function callGeminiWithKey(
             responseMimeType: "application/json",
           },
         }),
+        signal: controller.signal,
       }
     );
 
@@ -119,8 +127,14 @@ async function callGeminiWithKey(
 
     return parseJudgeResponse(text);
   } catch (error) {
-    console.warn("[gemini] 호출 중 예외 발생, 다음 키/폴백으로 전환:", error);
+    if (error instanceof Error && error.name === "AbortError") {
+      console.warn(`[gemini] ${REQUEST_TIMEOUT_MS}ms 타임아웃, 다음 키/폴백으로 전환`);
+    } else {
+      console.warn("[gemini] 호출 중 예외 발생, 다음 키/폴백으로 전환:", error);
+    }
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

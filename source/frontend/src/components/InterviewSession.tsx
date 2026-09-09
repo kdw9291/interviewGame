@@ -5,13 +5,14 @@ import { ArrowRight, FileCheck2 } from "lucide-react";
 import QuestionPanel from "./QuestionPanel";
 import ScoreGauge from "./ScoreGauge";
 import InterviewerReaction, { type ReactionMood } from "./InterviewerReaction";
-import { pickQuestions, pickTurnCount } from "@/lib/gameEngine";
-import { pickRandomThinkingLine } from "@/data/thinkingLines";
+import { findQuestionsByIds, pickQuestions, pickTurnCount } from "@/lib/gameEngine";
 import type { Interviewer, JudgeResult, QaHistoryEntry } from "@/types/interview";
 
 interface InterviewSessionProps {
   interviewer: Interviewer;
   onFinish: (history: QaHistoryEntry[], eliminatedEarly: boolean) => void;
+  /** 친구 도전장 딥링크로 들어온 경우, 랜덤 대신 이 질문 세트를 그대로 쓴다. */
+  fixedQuestionIds?: string[];
 }
 
 async function requestJudge(params: {
@@ -43,12 +44,16 @@ async function requestJudge(params: {
 export default function InterviewSession({
   interviewer,
   onFinish,
+  fixedQuestionIds,
 }: InterviewSessionProps) {
   const turnCount = useMemo(() => pickTurnCount(), []);
-  const questions = useMemo(
-    () => pickQuestions(interviewer.id, turnCount),
-    [interviewer.id, turnCount]
-  );
+  const questions = useMemo(() => {
+    if (fixedQuestionIds && fixedQuestionIds.length > 0) {
+      const fixed = findQuestionsByIds(fixedQuestionIds);
+      if (fixed.length > 0) return fixed;
+    }
+    return pickQuestions(interviewer.id, turnCount);
+  }, [interviewer.id, turnCount, fixedQuestionIds]);
 
   const [turnIndex, setTurnIndex] = useState(0);
   const [history, setHistory] = useState<QaHistoryEntry[]>([]);
@@ -76,7 +81,8 @@ export default function InterviewSession({
   const handleSubmit = async (answer: string) => {
     setSubmitting(true);
     setMood("thinking");
-    setMessage(pickRandomThinkingLine());
+    // 생각 중 문구는 InterviewerReaction이 자체적으로 순환시킨다.
+    setMessage(undefined);
 
     const result = await requestJudge({
       questionId: currentQuestion.id,
