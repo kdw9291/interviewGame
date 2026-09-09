@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Nanum_Myeongjo, Special_Elite } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 const nanumMyeongjo = Nanum_Myeongjo({
@@ -46,17 +45,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ko"
       className={`${nanumMyeongjo.variable} ${specialElite.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        {children}
+      <head>
         {adsenseClient && (
-          <Script
+          // AdSense 사이트 소유권 확인은 서버가 내려주는 원본 HTML의 <head> 안에
+          // 실제 <script> 태그가 있어야 통과한다. next/script는 클라이언트 JS가
+          // 실행된 뒤에야 태그를 동적으로 삽입하는 방식이라(strategy와 무관),
+          // JS를 실행하지 않는 크롤러에게는 코드가 없는 것으로 보인다.
+          // 그래서 여기서는 순수 HTML <script> 태그를 직접 렌더링한다.
+          <script
             async
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
             crossOrigin="anonymous"
-            strategy="afterInteractive"
           />
         )}
-      </body>
+      </head>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }
