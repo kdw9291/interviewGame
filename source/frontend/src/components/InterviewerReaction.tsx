@@ -1,6 +1,7 @@
 "use client";
 
 import { Frown, Loader2, Meh, Smile, type LucideIcon } from "lucide-react";
+import SentenceText from "./SentenceText";
 
 export type ReactionMood = "idle" | "thinking" | "pass" | "fail";
 
@@ -49,7 +50,9 @@ export default function InterviewerReaction({
       </p>
       {message && (
         <p className="max-w-sm rounded-sm border border-paper-dark/30 bg-wood/60 px-4 py-2 text-sm leading-relaxed text-paper">
-          &ldquo;{message}&rdquo;
+          &ldquo;
+          <SentenceText text={message} />
+          &rdquo;
         </p>
       )}
     </div>

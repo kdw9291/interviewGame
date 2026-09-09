@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ArrowRight, FileCheck2 } from "lucide-react";
 import QuestionPanel from "./QuestionPanel";
 import ScoreGauge from "./ScoreGauge";
 import InterviewerReaction, { type ReactionMood } from "./InterviewerReaction";
 import { pickQuestions, pickTurnCount } from "@/lib/gameEngine";
+import { pickRandomThinkingLine } from "@/data/thinkingLines";
 import type { Interviewer, JudgeResult, QaHistoryEntry } from "@/types/interview";
-
-const REACTION_DISPLAY_MS = 1800;
 
 interface InterviewSessionProps {
   interviewer: Interviewer;
@@ -56,6 +56,13 @@ export default function InterviewSession({
   const [message, setMessage] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
 
+  // 판정 결과가 나온 뒤: 대표가 직접 "다음"을 눌러야 넘어간다 (자동으로 사라지지 않음).
+  const [awaitingNext, setAwaitingNext] = useState(false);
+  const [pendingResultEntry, setPendingResultEntry] = useState<{
+    history: QaHistoryEntry[];
+    eliminated: boolean;
+  } | null>(null);
+
   const averageScore =
     history.length === 0
       ? 0
@@ -64,11 +71,12 @@ export default function InterviewSession({
         );
 
   const currentQuestion = questions[turnIndex];
+  const isLastTurn = turnIndex + 1 >= questions.length;
 
   const handleSubmit = async (answer: string) => {
     setSubmitting(true);
     setMood("thinking");
-    setMessage(undefined);
+    setMessage(pickRandomThinkingLine());
 
     const result = await requestJudge({
       questionId: currentQuestion.id,
@@ -82,18 +90,25 @@ export default function InterviewSession({
     setHistory(nextHistory);
     setMood(result.pass ? "pass" : "fail");
     setMessage(result.reaction);
+    setPendingResultEntry({ history: nextHistory, eliminated: !result.pass });
+    setAwaitingNext(true);
+  };
 
-    window.setTimeout(() => {
-      const isLastTurn = turnIndex + 1 >= questions.length;
-      if (!result.pass || isLastTurn) {
-        onFinish(nextHistory, !result.pass);
-        return;
-      }
-      setTurnIndex((prev) => prev + 1);
-      setMood("idle");
-      setMessage(undefined);
-      setSubmitting(false);
-    }, REACTION_DISPLAY_MS);
+  const handleAdvance = () => {
+    if (!pendingResultEntry) return;
+    const { history: finalHistory, eliminated } = pendingResultEntry;
+
+    if (eliminated || isLastTurn) {
+      onFinish(finalHistory, eliminated);
+      return;
+    }
+
+    setTurnIndex((prev) => prev + 1);
+    setMood("idle");
+    setMessage(undefined);
+    setSubmitting(false);
+    setAwaitingNext(false);
+    setPendingResultEntry(null);
   };
 
   return (
@@ -108,12 +123,32 @@ export default function InterviewSession({
         mood={mood}
         message={message}
       />
-      <QuestionPanel
-        key={currentQuestion.id}
-        question={currentQuestion}
-        disabled={submitting}
-        onSubmit={handleSubmit}
-      />
+      {awaitingNext ? (
+        <button
+          type="button"
+          onClick={handleAdvance}
+          className="flex items-center gap-2 rounded-sm border-2 border-gold bg-gold px-6 py-3 font-typewriter text-sm tracking-widest text-wood-dark transition-colors hover:bg-gold-bright"
+        >
+          {pendingResultEntry?.eliminated || isLastTurn ? (
+            <>
+              <FileCheck2 size={16} />
+              결과 확인하기
+            </>
+          ) : (
+            <>
+              다음 질문으로
+              <ArrowRight size={16} />
+            </>
+          )}
+        </button>
+      ) : (
+        <QuestionPanel
+          key={currentQuestion.id}
+          question={currentQuestion}
+          disabled={submitting}
+          onSubmit={handleSubmit}
+        />
+      )}
     </div>
   );
 }

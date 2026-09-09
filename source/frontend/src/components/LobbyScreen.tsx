@@ -5,6 +5,7 @@ import { Stamp, ScrollText, Clock, Gauge, Newspaper, DoorOpen } from "lucide-rea
 import InterviewerCard from "@/components/InterviewerCard";
 import LegendFeed from "@/components/LegendFeed";
 import AdBanner from "@/components/AdBanner";
+import SentenceText from "@/components/SentenceText";
 import { INTERVIEWERS } from "@/data/interviewers";
 import { withJosaWa } from "@/lib/korean";
 import type { Interviewer } from "@/types/interview";
@@ -30,10 +31,10 @@ export default function LobbyScreen({ onStart }: LobbyScreenProps) {
         <h1 className="mt-3 text-4xl font-extrabold text-paper drop-shadow-[0_2px_0_rgba(0,0,0,0.5)] sm:text-5xl">
           억까 면접관 살아남기
         </h1>
-        <p className="mt-4 text-sm leading-relaxed text-paper/70 sm:text-base">
-          상식과 논리가 통하지 않는 면접실입니다. 정답은 없습니다 — 오직
-          뻔뻔함과 순발력만이 당신을 합격시킵니다.
-        </p>
+        <SentenceText
+          text="상식과 논리가 통하지 않는 면접실입니다. 정답은 없습니다 — 오직 뻔뻔함과 순발력만이 당신을 합격시킵니다."
+          className="mt-4 block text-sm leading-relaxed text-paper/70 sm:text-base"
+        />
       </header>
 
       {/* 탭 메뉴 */}

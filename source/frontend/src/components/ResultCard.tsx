@@ -7,6 +7,7 @@ import type { FinalVerdict } from "@/lib/gameEngine";
 import { withJosaWa } from "@/lib/korean";
 import { inlineComputedColors } from "@/lib/captureUtils";
 import AdBanner from "./AdBanner";
+import SentenceText from "./SentenceText";
 
 const MAX_NICKNAME_LENGTH = 30;
 type StampStatus = "idle" | "loading" | "done" | "error";
@@ -158,9 +159,8 @@ export default function ResultCard({
           {history.map((entry, idx) => (
             <div key={entry.question.id} className="text-xs">
               <span className="font-typewriter text-wood/50">
-                Q{idx + 1}. {entry.question.question}
+                Q{idx + 1}. <SentenceText text={entry.question.question} />
               </span>
-              <br />
               <span className="text-wood/80">→ &ldquo;{entry.answer}&rdquo;</span>{" "}
               <span
                 className={entry.result.pass ? "text-emerald-700" : "text-stamp-red"}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
+import SentenceText from "./SentenceText";
 import type { Question } from "@/types/interview";
 
 const MAX_LENGTH = 120;
@@ -31,7 +32,10 @@ export default function QuestionPanel({
       <p className="mb-1 font-typewriter text-[11px] tracking-widest text-stamp-red">
         Q. {question.category === "k_boss" ? "꼰대형" : question.category === "startup" ? "열정페이형" : "괴짜형"} 질문
       </p>
-      <p className="mb-4 text-lg font-bold leading-snug">{question.question}</p>
+      <SentenceText
+        text={question.question}
+        className="mb-4 block text-lg font-bold leading-snug"
+      />
 
       <textarea
         value={answer}

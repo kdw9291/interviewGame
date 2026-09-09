@@ -1,6 +1,7 @@
 "use client";
 
 import { Briefcase, Rocket, Skull, type LucideIcon } from "lucide-react";
+import SentenceText from "./SentenceText";
 import type { Interviewer } from "@/types/interview";
 
 const ICONS: Record<Interviewer["id"], LucideIcon> = {
@@ -33,7 +34,7 @@ export default function InterviewerCard({
       }`}
     >
       {selected && (
-        <span className="absolute -top-3 right-3 rotate-6 rounded-full border-2 border-stamp-red px-2 py-0.5 font-typewriter text-[10px] tracking-widest text-stamp-red">
+        <span className="absolute top-2 right-2 rotate-6 rounded-full border-2 border-stamp-red bg-paper px-2 py-0.5 font-typewriter text-[10px] tracking-widest text-stamp-red">
           선택됨
         </span>
       )}
@@ -53,9 +54,10 @@ export default function InterviewerCard({
         <p className="mt-1 text-2xl font-bold">{interviewer.name}</p>
       </div>
       <p className="text-sm italic opacity-80">&ldquo;{interviewer.tagline}&rdquo;</p>
-      <p className="text-xs leading-relaxed opacity-70">
-        {interviewer.description}
-      </p>
+      <SentenceText
+        text={interviewer.description}
+        className="text-xs leading-relaxed opacity-70"
+      />
     </button>
   );
 }
