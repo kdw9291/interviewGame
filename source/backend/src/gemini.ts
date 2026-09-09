@@ -1,6 +1,8 @@
 import type { JudgeRequest, JudgeResult } from "./types";
 
-const MODEL = "gemini-2.0-flash";
+// gemini-2.0-flash는 Google 측에서 단종(404)되어 후속 모델로 교체함.
+// 모델 세대가 또 바뀌면 https://ai.google.dev/gemini-api/docs/models 에서 최신 flash 모델명을 확인해 갱신한다.
+const MODEL = "gemini-3.6-flash";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 /** Gemini 무료 키 풀이 전부 소진(429)됐거나 키가 하나도 없을 때 던진다. */
@@ -70,52 +72,62 @@ function parseJudgeResponse(rawText: string): JudgeResult {
   return { ...parsed, score };
 }
 
+/**
+ * 키 하나로 Gemini를 호출한다. 429(할당량 초과), 5xx(서버 일시 장애),
+ * 네트워크 오류, 응답 파싱 실패 등 실패 원인을 가리지 않고 전부 null로
+ * 통일해 반환한다 — 호출부가 다음 키로 넘어가거나 비상 셔터 모드로
+ * 전환하는 판단만 하면 되도록 하기 위해서다 (명세서 2.3 방어막2).
+ */
 async function callGeminiWithKey(
   apiKey: string,
   request: JudgeRequest
-): Promise<{ status: number; result?: JudgeResult }> {
-  const userPrompt = `[면접 질문]\n${request.question}\n\n[지원자 답변]\n${request.answer}`;
+): Promise<JudgeResult | null> {
+  try {
+    const userPrompt = `[면접 질문]\n${request.question}\n\n[지원자 답변]\n${request.answer}`;
 
-  const response = await fetch(
-    `${API_BASE}/${MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: buildSystemPrompt(request.interviewer) }],
-        },
-        contents: [{ parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          temperature: 0.9,
-          responseMimeType: "application/json",
-        },
-      }),
+    const response = await fetch(
+      `${API_BASE}/${MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: buildSystemPrompt(request.interviewer) }],
+          },
+          contents: [{ parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            temperature: 0.9,
+            responseMimeType: "application/json",
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.warn(`[gemini] 호출 실패 (HTTP ${response.status}), 다음 키/폴백으로 전환`);
+      return null;
     }
-  );
 
-  if (response.status === 429) {
-    return { status: 429 };
-  }
-  if (!response.ok) {
-    throw new Error(`Gemini API 오류: HTTP ${response.status}`);
-  }
+    const data = (await response.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      console.warn("[gemini] 응답에서 텍스트를 찾지 못함, 다음 키/폴백으로 전환");
+      return null;
+    }
 
-  const data = (await response.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error("Gemini 응답에서 텍스트를 찾을 수 없습니다.");
+    return parseJudgeResponse(text);
+  } catch (error) {
+    console.warn("[gemini] 호출 중 예외 발생, 다음 키/폴백으로 전환:", error);
+    return null;
   }
-
-  return { status: 200, result: parseJudgeResponse(text) };
 }
 
 /**
  * 무료 키 풀을 라운드로빈으로 순회하며 Gemini를 호출한다.
- * 모든 키가 429(할당량 초과)를 반환하면 QuotaExceededError를 던져
- * 호출부(judge.ts)가 비상 셔터 모드로 전환하게 한다.
+ * 모든 키가 실패하면(할당량 초과든 일시 장애든) QuotaExceededError를 던져
+ * 호출부(judge.ts)가 비상 셔터 모드(아카이브 -> 룰 템플릿)로 전환하게 한다.
  */
 export async function callGemini(request: JudgeRequest): Promise<JudgeResult> {
   const keys = getKeyPool();
@@ -125,10 +137,11 @@ export async function callGemini(request: JudgeRequest): Promise<JudgeResult> {
 
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const key = keys[(rotationCursor + attempt) % keys.length];
-    const { status, result } = await callGeminiWithKey(key, request);
-    if (status === 429) continue;
-    rotationCursor = (rotationCursor + attempt + 1) % keys.length;
-    if (result) return result;
+    const result = await callGeminiWithKey(key, request);
+    if (result) {
+      rotationCursor = (rotationCursor + attempt + 1) % keys.length;
+      return result;
+    }
   }
 
   throw new QuotaExceededError();

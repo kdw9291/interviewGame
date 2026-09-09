@@ -47,9 +47,11 @@ export async function POST(req: Request) {
       reaction: outcome.reaction,
       keyword: outcome.keyword,
     });
-  } catch {
+  } catch (error) {
     // judgeAnswer는 QuotaExceededError를 내부에서 처리하지만,
     // 예상 못한 오류(네트워크 단절 등)까지 방어해 서비스가 절대 죽지 않게 한다.
+    // 원인 추적을 위해 서버 로그에는 남긴다 (클라이언트 응답에는 노출하지 않음).
+    console.error("[api/judge] unexpected error:", error);
     return NextResponse.json(
       {
         pass: Math.random() > 0.4,
