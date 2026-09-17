@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import LobbyScreen from "@/components/LobbyScreen";
 import InterviewSession from "@/components/InterviewSession";
 import ResultCard from "@/components/ResultCard";
+import AdBanner from "@/components/AdBanner";
 import { computeFinalVerdict, type FinalVerdict } from "@/lib/gameEngine";
 import { parseChallenge } from "@/lib/challengeLink";
 import { INTERVIEWERS } from "@/data/interviewers";
@@ -55,35 +56,47 @@ function HomeContent() {
     : undefined;
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-wood-dark px-4 py-10 sm:py-16">
-      {phase === "lobby" && (
-        <LobbyScreen
-          onStart={handleStart}
-          challenge={
-            challenge && challengeInterviewer
-              ? { interviewer: challengeInterviewer, questionIds: challenge.questionIds }
-              : undefined
-          }
-        />
-      )}
+    <div className="flex flex-1 justify-center gap-6 bg-wood-dark px-4 py-10 sm:py-16">
+      {/* PC(lg 이상)에서만 보이는 좌측 사이드 레일. 모바일은 각 화면 하단 배너로 대체한다. */}
+      <aside className="sticky top-16 hidden h-[600px] w-40 shrink-0 lg:block">
+        <AdBanner slot="sideLeft" className="h-[600px] w-40" fullWidthResponsive={false} />
+      </aside>
 
-      {phase === "playing" && interviewer && (
-        <InterviewSession
-          interviewer={interviewer}
-          onFinish={handleFinish}
-          fixedQuestionIds={fixedQuestionIds}
-        />
-      )}
+      <div className="flex w-full max-w-4xl flex-col items-center">
+        {phase === "lobby" && (
+          <LobbyScreen
+            onStart={handleStart}
+            challenge={
+              challenge && challengeInterviewer
+                ? { interviewer: challengeInterviewer, questionIds: challenge.questionIds }
+                : undefined
+            }
+          />
+        )}
 
-      {phase === "result" && result && (
-        <ResultCard
-          interviewerName={result.interviewer.name}
-          interviewerId={result.interviewer.id}
-          verdict={result.verdict}
-          history={result.history}
-          onRestart={handleRestart}
-        />
-      )}
+        {phase === "playing" && interviewer && (
+          <InterviewSession
+            interviewer={interviewer}
+            onFinish={handleFinish}
+            fixedQuestionIds={fixedQuestionIds}
+          />
+        )}
+
+        {phase === "result" && result && (
+          <ResultCard
+            interviewerName={result.interviewer.name}
+            interviewerId={result.interviewer.id}
+            verdict={result.verdict}
+            history={result.history}
+            onRestart={handleRestart}
+          />
+        )}
+      </div>
+
+      {/* PC(lg 이상)에서만 보이는 우측 사이드 레일. */}
+      <aside className="sticky top-16 hidden h-[600px] w-40 shrink-0 lg:block">
+        <AdBanner slot="sideRight" className="h-[600px] w-40" fullWidthResponsive={false} />
+      </aside>
     </div>
   );
 }

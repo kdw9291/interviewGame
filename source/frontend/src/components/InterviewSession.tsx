@@ -5,6 +5,7 @@ import { ArrowRight, FileCheck2 } from "lucide-react";
 import QuestionPanel from "./QuestionPanel";
 import ScoreGauge from "./ScoreGauge";
 import InterviewerReaction, { type ReactionMood } from "./InterviewerReaction";
+import AdBanner from "./AdBanner";
 import { findQuestionsByIds, pickQuestions, pickTurnCount } from "@/lib/gameEngine";
 import type { Interviewer, JudgeResult, QaHistoryEntry } from "@/types/interview";
 
@@ -155,6 +156,11 @@ export default function InterviewSession({
           onSubmit={handleSubmit}
         />
       )}
+
+      {/* PC에서는 page.tsx의 좌우 사이드 레일이 대신하므로 모바일에서만 보여준다. */}
+      <div className="flex w-full justify-center lg:hidden">
+        <AdBanner slot="gamePlay" />
+      </div>
     </div>
   );
 }

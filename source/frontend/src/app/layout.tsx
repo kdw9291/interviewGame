@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nanum_Myeongjo, Special_Elite } from "next/font/google";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 const nanumMyeongjo = Nanum_Myeongjo({
@@ -59,7 +60,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           />
         )}
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Footer />
+      </body>
     </html>
   );
 }

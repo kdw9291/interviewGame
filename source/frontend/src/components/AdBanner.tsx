@@ -4,6 +4,10 @@ import { useEffect } from "react";
 
 interface AdBannerProps {
   slot: string;
+  /** 배너 크기 클래스. 생략하면 기존 가로형 기본값을 쓴다(하단 배너용). */
+  className?: string;
+  /** 세로형 사이드 레일처럼 고정 크기를 쓸 때는 false로 끈다. */
+  fullWidthResponsive?: boolean;
 }
 
 // 실제 AdSense 광고 단위(ad unit) ID는 숫자로만 구성된다.
@@ -13,12 +17,16 @@ interface AdBannerProps {
 const VALID_SLOT_ID = /^\d+$/;
 
 /**
- * Google AdSense 반응형 배너.
+ * Google AdSense 배너.
  * NEXT_PUBLIC_ADSENSE_CLIENT가 없거나(심사 전/로컬 개발) 실제 슬롯 ID를
  * 아직 발급받지 못했으면 자리표시 박스만 보여주고, 둘 다 준비되면 실제
  * 광고 슬롯을 렌더링한다 (명세서 2.3 방어막3, 5장 AdSense 연동).
  */
-export default function AdBanner({ slot }: AdBannerProps) {
+export default function AdBanner({
+  slot,
+  className,
+  fullWidthResponsive = true,
+}: AdBannerProps) {
   const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
   const hasValidSlot = VALID_SLOT_ID.test(slot);
 
@@ -33,7 +41,11 @@ export default function AdBanner({ slot }: AdBannerProps) {
 
   if (!client || !hasValidSlot) {
     return (
-      <div className="flex h-24 w-full max-w-xl items-center justify-center rounded-sm border border-dashed border-paper-dark/30 font-typewriter text-[11px] tracking-widest text-paper/30">
+      <div
+        className={`flex items-center justify-center rounded-sm border border-dashed border-paper-dark/30 font-typewriter text-[11px] tracking-widest text-paper/30 ${
+          className ?? "h-24 w-full max-w-xl"
+        }`}
+      >
         AD BANNER (AdSense 승인 후 표시)
       </div>
     );
@@ -41,12 +53,12 @@ export default function AdBanner({ slot }: AdBannerProps) {
 
   return (
     <ins
-      className="adsbygoogle block w-full max-w-xl"
+      className={`adsbygoogle block ${className ?? "w-full max-w-xl"}`}
       style={{ display: "block" }}
       data-ad-client={client}
       data-ad-slot={slot}
       data-ad-format="auto"
-      data-full-width-responsive="true"
+      data-full-width-responsive={fullWidthResponsive ? "true" : "false"}
     />
   );
 }

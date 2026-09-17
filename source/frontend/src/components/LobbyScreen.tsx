@@ -168,7 +168,8 @@ export default function LobbyScreen({ onStart, challenge }: LobbyScreenProps) {
         </section>
       )}
 
-      <div className="mt-10 flex justify-center">
+      {/* PC에서는 page.tsx의 좌우 사이드 레일이 대신하므로 모바일에서만 보여준다. */}
+      <div className="mt-10 flex justify-center lg:hidden">
         <AdBanner slot="lobby" />
       </div>
     </div>

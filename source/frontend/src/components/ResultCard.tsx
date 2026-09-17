@@ -287,7 +287,10 @@ export default function ResultCard({
         </div>
       )}
 
-      <AdBanner slot="resultCard" />
+      {/* PC에서는 page.tsx의 좌우 사이드 레일이 대신하므로 모바일에서만 보여준다. */}
+      <div className="flex w-full justify-center lg:hidden">
+        <AdBanner slot="resultCard" />
+      </div>
     </div>
   );
 }
