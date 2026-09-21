@@ -45,6 +45,7 @@ export default function AdBanner({
         className={`flex items-center justify-center rounded-sm border border-dashed border-paper-dark/30 font-typewriter text-[11px] tracking-widest text-paper/30 ${
           className ?? "h-24 w-full max-w-xl"
         }`}
+        style={{ display: "none" }} /* AdSense 승인 후 주석 해제 */
       >
         AD BANNER (AdSense 승인 후 표시)
       </div>
